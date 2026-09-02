@@ -1,0 +1,29 @@
+### 연결 정보 등록
+POST http://localhost:8080/api/connections
+Content-Type: application/json
+
+{
+  "name": "회사 PostgreSQL",
+  "dbType": "POSTGRESQL",
+  "host": "localhost",
+  "port": 5432,
+  "databaseName": "sampledb",
+  "username": "dev",
+  "password": "dev1234"
+}
+
+### 전체 목록 조회
+GET http://localhost:8080/api/connections
+
+### 연결 테스트
+POST http://localhost:8080/api/connections/test
+Content-Type: application/json
+
+{
+  "dbType": "POSTGRESQL",
+  "host": "localhost",
+  "port": 5432,
+  "databaseName": "sampledb",
+  "username": "dev",
+  "password": "dev1234"
+}
