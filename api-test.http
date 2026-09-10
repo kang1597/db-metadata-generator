@@ -33,3 +33,6 @@ GET http://localhost:8080/api/metadata/1/tables
 
 ### members 테이블 상세 조회
 GET http://localhost:8080/api/metadata/1/tables/members
+
+### Excel 정의서 다운로드
+GET http://localhost:8080/api/export/excel/1/tables/members
