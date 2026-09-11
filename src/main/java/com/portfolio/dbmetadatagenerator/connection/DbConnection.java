@@ -36,8 +36,9 @@ public class DbConnection {
     @Column(nullable = false, length = 100)
     private String username;
 
+    @Convert(converter = PasswordConverter.class)
     @Column(nullable = false)
-    private String password;          // 추후 암호화 예정
+    private String password;
 
     @Column(updatable = false)
     private LocalDateTime createdAt;

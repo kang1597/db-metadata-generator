@@ -1,9 +1,9 @@
-### 연결 정보 등록
+### 연결 정보 등록 (암호화 테스트용)
 POST http://localhost:8080/api/connections
 Content-Type: application/json
 
 {
-  "name": "회사 PostgreSQL",
+  "name": "암호화 테스트",
   "dbType": "POSTGRESQL",
   "host": "localhost",
   "port": 5432,
