@@ -50,7 +50,7 @@ public class CodeGenerateService {
     }
 
     // 스네이크케이스 → 카멜케이스 (member_id → memberId)
-    private String toCamelCase(String snakeCase) {
+    String toCamelCase(String snakeCase) {
         StringBuilder result = new StringBuilder();
         boolean upperNext = false;
         for (char c : snakeCase.toCharArray()) {
@@ -65,13 +65,13 @@ public class CodeGenerateService {
     }
 
     // 스네이크케이스 → 파스칼케이스 (members → Members)
-    private String toPascalCase(String snakeCase) {
+    String toPascalCase(String snakeCase) {
         String camel = toCamelCase(snakeCase);
         return Character.toUpperCase(camel.charAt(0)) + camel.substring(1);
     }
 
     // DB 타입명 → Java 타입명 매핑
-    private String mapToJavaType(String dbType) {
+    String mapToJavaType(String dbType) {
         String type = dbType.toLowerCase();
         if (type.contains("bigserial") || type.contains("bigint")) return "Long";
         if (type.contains("int")) return "Integer";
