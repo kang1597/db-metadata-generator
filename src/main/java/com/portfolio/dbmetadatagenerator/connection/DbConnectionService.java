@@ -1,5 +1,6 @@
 package com.portfolio.dbmetadatagenerator.connection;
 
+import com.portfolio.dbmetadatagenerator.common.exception.ConnectionNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -27,7 +28,7 @@ public class DbConnectionService {
     // 단건 조회
     public DbConnection findById(Long id) {
         return repository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("연결 정보를 찾을 수 없습니다. id=" + id));
+                .orElseThrow(() -> new ConnectionNotFoundException(id));
     }
 
     // 실제 DB에 연결이 되는지 테스트

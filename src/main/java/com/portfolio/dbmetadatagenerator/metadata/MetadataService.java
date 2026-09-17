@@ -1,5 +1,6 @@
 package com.portfolio.dbmetadatagenerator.metadata;
 
+import com.portfolio.dbmetadatagenerator.common.exception.ConnectionNotFoundException;
 import com.portfolio.dbmetadatagenerator.connection.DbConnection;
 import com.portfolio.dbmetadatagenerator.connection.DbConnectionRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +21,7 @@ public class MetadataService {
     // 특정 연결의 전체 테이블 목록 조회 (테이블명만, 간단 버전)
     public List<String> getTableNames(Long connectionId) throws SQLException {
         DbConnection dbConnection = dbConnectionRepository.findById(connectionId)
-                .orElseThrow(() -> new IllegalArgumentException("연결 정보를 찾을 수 없습니다."));
+                .orElseThrow(() -> new ConnectionNotFoundException(connectionId));
 
         List<String> tableNames = new ArrayList<>();
 
@@ -41,7 +42,7 @@ public class MetadataService {
     // 특정 테이블의 상세 메타데이터 조회 (컬럼, PK 포함)
     public TableMetadata getTableDetail(Long connectionId, String tableName) throws SQLException {
         DbConnection dbConnection = dbConnectionRepository.findById(connectionId)
-                .orElseThrow(() -> new IllegalArgumentException("연결 정보를 찾을 수 없습니다."));
+                .orElseThrow(() -> new ConnectionNotFoundException(connectionId));
 
         try (Connection conn = openConnection(dbConnection)) {
             DatabaseMetaData metaData = conn.getMetaData();

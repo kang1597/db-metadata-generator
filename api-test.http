@@ -39,3 +39,6 @@ GET http://localhost:8080/api/export/excel/1/tables/members
 
 ### VO 코드 생성
 GET http://localhost:8080/api/export/code/2/tables/members/vo
+
+### 존재하지 않는 연결 조회 (예외 처리 테스트)
+GET http://localhost:8080/api/connections/999
