@@ -1,11 +1,11 @@
-### 연결 정보 등록 (암호화 테스트용)
+### 연결 정보 등록 (컨테이너 환경용)
 POST http://localhost:8080/api/connections
 Content-Type: application/json
 
 {
-  "name": "암호화 테스트",
+  "name": "컨테이너 PostgreSQL",
   "dbType": "POSTGRESQL",
-  "host": "localhost",
+  "host": "postgres",
   "port": 5432,
   "databaseName": "sampledb",
   "username": "dev",
@@ -35,7 +35,7 @@ GET http://localhost:8080/api/metadata/1/tables
 GET http://localhost:8080/api/metadata/1/tables/members
 
 ### Excel 정의서 다운로드
-GET http://localhost:8080/api/export/excel/1/tables/members
+GET http://localhost:8080/api/export/excel/9/tables/members
 
 ### VO 코드 생성
 GET http://localhost:8080/api/export/code/2/tables/members/vo

@@ -58,9 +58,10 @@ public class ExcelExportService {
                         column.getRemarks() != null ? column.getRemarks() : "");
             }
 
-            // 컬럼 너비 자동 조정
-            for (int i = 0; i < headers.length; i++){
+            // 컬럼 너비 자동 조정 (헤더가 잘리지 않도록 여유 추가)
+            for (int i = 0; i < headers.length; i++) {
                 sheet.autoSizeColumn(i);
+                sheet.setColumnWidth(i, sheet.getColumnWidth(i) + 1024);  // 약 3글자 분량 여유
             }
 
             workbook.write(out);
