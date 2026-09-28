@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: sampledb
+          POSTGRES_USER: dev
+          POSTGRES_PASSWORD: dev1234
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: 소스 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: JDK 17 설정
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: gradlew 실행 권한 부여
+        run: chmod +x ./gradlew
+
+      - name: 테스트용 샘플 테이블 생성
+        run: |
+          PGPASSWORD=dev1234 psql -h localhost -U dev -d sampledb -c "
+            CREATE TABLE members (
+                member_id BIGSERIAL PRIMARY KEY,
+                email VARCHAR(255) NOT NULL UNIQUE,
+                nickname VARCHAR(50) NOT NULL,
+                password VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                is_active BOOLEAN DEFAULT TRUE
+            );
+            COMMENT ON TABLE members IS '회원 정보';
+            COMMENT ON COLUMN members.member_id IS '회원 고유 ID';
+            COMMENT ON COLUMN members.email IS '이메일 (로그인 ID)';
+            COMMENT ON COLUMN members.nickname IS '닉네임';
+
+            CREATE TABLE posts (
+                post_id BIGSERIAL PRIMARY KEY,
+                member_id BIGINT NOT NULL REFERENCES members(member_id),
+                title VARCHAR(200) NOT NULL,
+                content TEXT,
+                view_count INT DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP
+            );
+            COMMENT ON TABLE posts IS '게시글';
+          "
+
+      - name: 빌드 및 테스트 실행
+        run: ./gradlew build
+
+      - name: 테스트 결과 업로드
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: build/reports/tests/test/
