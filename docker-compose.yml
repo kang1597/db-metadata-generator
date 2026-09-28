@@ -1,4 +1,18 @@
 services:
+  app:
+    build: .
+    container_name: dbmeta-app
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/sampledb
+      SPRING_DATASOURCE_USERNAME: dev
+      SPRING_DATASOURCE_PASSWORD: dev1234
+      JASYPT_ENCRYPTOR_PASSWORD: my-secret-key-1234
+    depends_on:
+      - postgres
+      - mariadb
+
   postgres:
     image: postgres:16
     container_name: dbmeta-postgres
