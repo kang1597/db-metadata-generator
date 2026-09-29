@@ -42,3 +42,29 @@ GET http://localhost:8080/api/export/code/9/tables/members/vo
 
 ### 존재하지 않는 연결 조회 (예외 처리 테스트)
 GET http://localhost:8080/api/connections/999
+
+### MariaDB 연결 정보 등록
+POST http://localhost:8080/api/connections
+Content-Type: application/json
+
+{
+  "name": "컨테이너 MariaDB",
+  "dbType": "MARIADB",
+  "host": "mariadb",
+  "port": 3306,
+  "databaseName": "sampledb",
+  "username": "dev",
+  "password": "dev1234"
+}
+
+### MariaDB 테이블 목록 조회
+GET http://localhost:8080/api/metadata/10/tables
+
+### MariaDB members 테이블 상세 조회
+GET http://localhost:8080/api/metadata/10/tables/members
+
+### MariaDB Excel 정의서 다운로드
+GET http://localhost:8080/api/export/excel/10/tables/members
+
+### MariaDB VO 코드 생성
+GET http://localhost:8080/api/export/code/10/tables/members/vo

@@ -28,8 +28,11 @@ public class MetadataService {
         try (Connection conn = openConnection(dbConnection)) {
             DatabaseMetaData metaData = conn.getMetaData();
 
-            // schema는 null로 두면 기본 스키마(현재 접속한 DB) 기준으로 조회됨
-            try (ResultSet rs = metaData.getTables(null, null, "%", new String[]{"TABLE"})) {
+            // 현재 접속한 DB(catalog)로 조회 범위를 제한
+            // MariaDB/MySQL은 catalog가 곧 데이터베이스이므로 null을 넘기면 시스템 DB까지 조회됨
+            String catalog = conn.getCatalog();
+
+            try (ResultSet rs = metaData.getTables(catalog, null, "%", new String[]{"TABLE"})) {
                 while (rs.next()) {
                     tableNames.add(rs.getString("TABLE_NAME"));
                 }
@@ -46,10 +49,11 @@ public class MetadataService {
 
         try (Connection conn = openConnection(dbConnection)) {
             DatabaseMetaData metaData = conn.getMetaData();
+            String catalog = conn.getCatalog();
 
             // 1) PK 컬럼명들을 먼저 Set으로 모아둠 (나중에 컬럼 순회하며 대조하기 위함)
             Set<String> primaryKeys = new HashSet<>();
-            try (ResultSet pkRs = metaData.getPrimaryKeys(null, null, tableName)) {
+            try (ResultSet pkRs = metaData.getPrimaryKeys(catalog, null, tableName)) {
                 while (pkRs.next()) {
                     primaryKeys.add(pkRs.getString("COLUMN_NAME"));
                 }
@@ -57,7 +61,7 @@ public class MetadataService {
 
             // 2) 테이블 코멘트 조회
             String tableRemarks = null;
-            try (ResultSet tableRs = metaData.getTables(null, null, tableName, new String[]{"TABLE"})) {
+            try (ResultSet tableRs = metaData.getTables(catalog, null, tableName, new String[]{"TABLE"})) {
                 if (tableRs.next()) {
                     tableRemarks = tableRs.getString("REMARKS");
                 }
@@ -65,7 +69,7 @@ public class MetadataService {
 
             // 3) 컬럼 목록 조회
             List<ColumnMetadata> columns = new ArrayList<>();
-            try (ResultSet colRs = metaData.getColumns(null, null, tableName, "%")) {
+            try (ResultSet colRs = metaData.getColumns(catalog, null, tableName, "%")) {
                 while (colRs.next()) {
                     String columnName = colRs.getString("COLUMN_NAME");
                     columns.add(new ColumnMetadata(
