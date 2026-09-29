@@ -25,6 +25,21 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+      mariadb:
+        image: mariadb:11
+        env:
+          MARIADB_DATABASE: sampledb
+          MARIADB_USER: dev
+          MARIADB_PASSWORD: dev1234
+          MARIADB_ROOT_PASSWORD: root1234
+        ports:
+          - 3307:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
     steps:
       - name: 소스 코드 체크아웃
         uses: actions/checkout@v4
@@ -38,7 +53,12 @@ jobs:
       - name: gradlew 실행 권한 부여
         run: chmod +x ./gradlew
 
-      - name: 테스트용 샘플 테이블 생성
+      - name: MariaDB 클라이언트 설치
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mariadb-client
+
+      - name: PostgreSQL 샘플 테이블 생성
         run: |
           PGPASSWORD=dev1234 psql -h localhost -U dev -d sampledb -c "
             CREATE TABLE members (
@@ -65,6 +85,30 @@ jobs:
             );
             COMMENT ON TABLE posts IS '게시글';
           "
+
+      - name: MariaDB 샘플 테이블 생성
+        run: |
+          mariadb -h 127.0.0.1 -P 3307 -u dev -pdev1234 sampledb <<'SQL'
+            CREATE TABLE members (
+                member_id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '회원 고유 ID',
+                email VARCHAR(255) NOT NULL UNIQUE COMMENT '이메일 (로그인 ID)',
+                nickname VARCHAR(50) NOT NULL COMMENT '닉네임',
+                password VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                is_active BOOLEAN DEFAULT TRUE
+            ) COMMENT='회원 정보';
+
+            CREATE TABLE posts (
+                post_id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '게시글 고유 ID',
+                member_id BIGINT NOT NULL COMMENT '작성자 (members 참조)',
+                title VARCHAR(200) NOT NULL,
+                content TEXT,
+                view_count INT DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP NULL,
+                FOREIGN KEY (member_id) REFERENCES members(member_id)
+            ) COMMENT='게시글';
+          SQL
 
       - name: 빌드 및 테스트 실행
         run: ./gradlew build
