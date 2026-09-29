@@ -263,11 +263,12 @@ docker compose up -d postgres   # 통합 테스트용 DB 필요
 | 테스트 클래스 | 종류 | 검증 내용 |
 |---|---|---|
 | `CodeGenerateServiceTest` | 단위 (7건) | 케이스 변환, DB 타입 → Java 타입 매핑 |
-| `MetadataServiceTest` | 통합 (3건) | 테이블 목록 조회, PK 판별, 코멘트 추출 |
+| `MetadataServiceTest` | 통합 (6건) | PostgreSQL / MariaDB 각각에 대해 테이블 목록 조회, PK 판별, 코멘트 추출 검증 |
 
 - 외부 의존성이 없는 순수 로직은 Spring 컨텍스트 없이 단위 테스트로, DB 연동이 필요한 로직은 `@SpringBootTest` 기반 통합 테스트로 분리했습니다.
+- 통합 테스트는 `@Nested`로 DB별 그룹을 나눠, **동일한 검증 기준을 두 DB에 각각 적용**했습니다.
 - 통합 테스트는 `@Transactional`을 적용해 각 테스트 종료 시 데이터가 롤백되도록 하여 테스트 간 독립성을 보장합니다.
-- GitHub Actions를 통해 `main` 브랜치 push 시 **PostgreSQL 컨테이너를 띄운 상태에서 전체 테스트가 자동 실행**됩니다.
+- GitHub Actions를 통해 `main` 브랜치 push 시 **PostgreSQL과 MariaDB 컨테이너를 모두 띄운 상태에서 전체 테스트가 자동 실행**됩니다.
 
 ---
 
@@ -352,6 +353,48 @@ HTTP 헤더는 기본적으로 ASCII 기반 규격이라, 한글을 그대로 �
 결과적으로 최종 이미지 크기를 **176MB**로 유지했습니다.
 
 ---
+
+### 7. MariaDB 검증 중 발견한 catalog/schema 개념 차이
+
+**문제**  
+MariaDB 연결로 테이블 목록을 조회하니, 사용자 테이블과 함께 `global_status`, `session_status` 등 시스템 테이블이 섞여 반환되었습니다.
+
+```json
+["global_status", "session_account_connect_attrs", "session_status", "members", "posts"]
+```
+
+**원인**  
+`DatabaseMetaData.getTables(catalog, schema, ...)`에 catalog와 schema를 모두 `null`(= 전체)로 전달하고 있었는데, 이 두 개념의 의미가 DB마다 다릅니다.
+
+| | catalog | schema | `null` 전달 시 |
+|---|---|---|---|
+| PostgreSQL | 데이터베이스 | `public`, `pg_catalog` 등 | 시스템 테이블은 `SYSTEM TABLE` 타입으로 분류되어 `{"TABLE"}` 필터에서 자동 제외 |
+| MariaDB/MySQL | **데이터베이스** (schema 개념 없음) | 사용하지 않음 | **서버의 모든 데이터베이스**(`information_schema`, `performance_schema` 포함)를 조회 |
+
+MariaDB는 catalog가 곧 데이터베이스이므로, `null`이 "이 서버의 모든 DB"로 해석된 것이 원인이었습니다.
+
+**해결**  
+`Connection.getCatalog()`로 **현재 접속 중인 데이터베이스**를 얻어 조회 범위를 명시적으로 제한했습니다.
+
+```java
+String catalog = conn.getCatalog();
+metaData.getTables(catalog, null, "%", new String[]{"TABLE"});
+```
+
+DB 타입별로 분기하는 대신 JDBC가 접속 정보를 알려주도록 위임했기 때문에, 추후 Oracle 등을 추가해도 이 로직은 수정할 필요가 없습니다.
+
+**후속 조치**  
+기존 통합 테스트는 `contains("members", "posts")`로 검증하고 있어 시스템 테이블이 섞여도 통과하는 구조였습니다. 동일한 문제가 재발하지 않도록 MariaDB 통합 테스트를 `containsExactlyInAnyOrder`로 추가하고, CI 워크플로에 MariaDB 서비스 컨테이너를 구성해 **PostgreSQL과 MariaDB 양쪽이 매 push마다 자동 검증**되도록 했습니다.
+
+**함께 확인한 DB별 차이 (동작에는 영향 없음)**
+
+| 항목 | PostgreSQL | MariaDB |
+|---|---|---|
+| 타입명 표기 | `bigserial`, `varchar` (소문자) | `BIGINT`, `VARCHAR` (대문자) |
+| 코멘트 없는 컬럼 | `null` | `""` (빈 문자열) |
+| `TIMESTAMP` 컬럼 크기 | 29 | 19 |
+
+타입 매핑 로직이 소문자 변환 후 비교하고 있어 표기 차이는 문제가 되지 않았으며, 두 DB에서 **동일한 VO 코드와 Excel 정의서가 생성됨을 확인**했습니다.
 
 ## 📈 향후 개선 계획
 
